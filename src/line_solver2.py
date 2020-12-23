@@ -1,5 +1,6 @@
 # Complete line solver using stars and bars
 
+import numpy as np 
 from itertools import combinations
 from pprint import pprint
 
@@ -26,31 +27,6 @@ def partitions(n, k, r = None):
         yield [b-a-1+c for a,b,c in zip((-1,)+c, c+(n+k-1,), r)]
 
 def is_valid_combo(line, rule, combo):
-    # [0, 1, 3, 13]
-    # block_boundaries = [
-    #     [0, 1] + 1
-    #     [2, 3] + 3
-    #     [6, 11] + 13
-    #     [24, 24]
-    # ]
-    # space_boundaries = [
-    #     [0, 0] + 1
-    #     [1, 2] + 1
-    #     [3, 6] + 5
-    #     [11, 24]
-    # ]
-    #
-    # block_boundaries = [
-    #     [combo[0], combo[0]+rule[0]] + combo[1]
-    #     [2, 2 + rule[1]] + combo[2]
-    #     [6, 6 + rule[2]] + combo[3]
-    # ]
-    # space_boundaries = [
-    #     [0, 0 + combo[0]] + rule[0]
-    #     [1, 1 + combo[1]] + rule[1]
-    #     [3, 3 + combo[2]] + rule[2]
-    #     [11, 11+combo[3]]
-    # ]
     j = combo[0]
     k = 0
     for i in range(len(rule)):
@@ -78,12 +54,14 @@ def solve_line(line, rule):
         lambda c: is_valid_combo(line, rule, c),
         partitions(n, k, base)
     ))
-    res = generate_line_from_combo(line, rule, combos[0])
-    for combo in combos:
-        # Use value it is equal across all combos, otherwise set as unknown
-        cline = generate_line_from_combo(line, rule, combo)
-        res = [x if not(res[i] ^ cline[i]) else -1 for i, x in enumerate(cline)]
-    return res
+    if len(combos) > 0:
+        res = generate_line_from_combo(line, rule, combos[0])
+        for combo in combos:
+            # Use value it is equal across all combos, otherwise set as unknown
+            cline = generate_line_from_combo(line, rule, combo)
+            res = [x if not(res[i] ^ cline[i]) else -1 for i, x in enumerate(cline)]
+        return res
+    return line
 
 def print_lines(lines):
     m = len(lines)
@@ -106,21 +84,27 @@ def print_lines(lines):
     print(string)
 
 def main():
-    row_rules = [[2, 1], [1, 3], [1, 2], [3], [4], [1]]
-    col_rules = [[1], [5], [2], [5], [2, 1], [2]]
+    # col_rules = [[1, 2], [2], [3], [2], [3]]
+    # row_rules = [[3], [1, 3], [1, 1], [2], [2]]
+    col_rules = [[1], [2, 2], [1, 4, 4], [2, 6, 1], [1, 4, 1, 1], [1, 1]]
+    row_rules = [[1], [1, 1], [5], [1], [2], [3], [2, 2], [1, 2], [2], [2], [1], [1, 1], [1, 1], [2]]
     m = len(row_rules)
     n = len(col_rules)
-    lines = [[-1 for _ in range(m)] 
-                for _ in range(n)]
+    lines = np.array(
+        [[-1 for _ in range(n)] 
+             for _ in range(m)]
+    )
 
+    print(m, n)
+    for _ in range(5):
+        for i in range(m):
+            line = lines[i]
+            rule = row_rules[i]
+            lines[i] = solve_line(line, rule)
+        for j in range(n):
+            line = lines[:,j]
+            rule = col_rules[j]
+            lines[:,j] = solve_line(line, rule)
     print_lines(lines)
-
-    # string = "---#--         -      # "
-    # line = [-1] * len(string)
-    # for i, c in enumerate(string):
-    #     if c == '-': line[i] = 0
-    #     elif c == '#': line[i] = 1
-    # rule = [1, 1, 5]
-    # solve_line(line, rule)
 
 main()
