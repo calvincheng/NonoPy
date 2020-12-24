@@ -16,7 +16,6 @@ def partitions2(n, k, r, line, rule):
         yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
 
 
-
 class Nonogram:
     def __init__(self, rows, cols):
         self.rows = rows
@@ -93,12 +92,11 @@ class Nonogram:
 
         k = len(rule) + 1
         n = len(line) - sum(rule) - (k - 2)
-        # print("n: {} | k: {}".format(n, k))
         base = [1 if 0 < i < k-1 else 0 for i in range(k)]
         combos = list(filter(
             is_valid_combo,
-            # partitions2(n, k, base, line, rule)
             partitions(n, k, base)
+            # partitions2(n, k, base, line, rule)
         ))
 
         if len(combos) > 0:
@@ -152,49 +150,7 @@ class Nonogram:
         stats.print_stats(10)
 
 
-col_rules = [
-    [3, 3],
-    [3, 5],
-    [1, 5, 1],
-    [1, 3],
-    [4],
-    [2],
-    [1, 1],
-    [3],
-    [5],
-    [1, 4, 4, 4, 4, 3],
-    [3, 4, 4, 4, 4, 1],
-    [3, 4, 4, 4, 4]
-]
-row_rules = [
-    [1],
-    [3],
-    [2],
-    [1, 1],
-    [2],
-    [3],
-    [3],
-    [2],
-    [1, 1],
-    [2],
-    [3],
-    [3],
-    [2],
-    [1, 1],
-    [2],
-    [3],
-    [1, 3],
-    [3, 2],
-    [2, 1, 1],
-    [1, 1, 2],
-    [2, 3],
-    [3, 3],
-    [4, 1, 2],
-    [3, 1, 3, 1],
-    [1, 2, 5],
-    [4, 3],
-    [4, 1],
-]
+from examples.candy_cane import row_rules, col_rules
 
 N = Nonogram(row_rules, col_rules)
 N.solve()
