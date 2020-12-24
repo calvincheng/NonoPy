@@ -180,16 +180,5 @@ row_rules = [
 ]
 
 N = Nonogram(row_rules, col_rules)
-rule = [1,1,5]
-L = 24
 N.solve()
-print(N.hits, N.nohits)
 print(N)
-
-# k = len(rule) + 1
-# n = L - sum(rule) - (k - 2)
-# combs = combinations(range(n+k-1), k-1)
-# print(list(combs)[2])
-# # parts = partitions(n, k)
-# parts = partitions2(n, k, [0, 0, 0, 0], N.grid[0], row_rules[0])
-# print(list(parts)[2])
