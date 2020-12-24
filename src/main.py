@@ -74,7 +74,7 @@ class Nonogram:
             j = combo[0]    # solids
             k = 0           # spaces
             for i in range(len(rule)):
-                if 0 in line[j:j+rule[i]] or 1 in line[k:k+combo[i]]:
+                if not all(line[j:j+rule[i]]) or 1 in line[k:k+combo[i]]:
                     return False
                 j += (combo[i+1] + rule[i])
                 k += (combo[i] + rule[i])
@@ -150,7 +150,7 @@ class Nonogram:
         stats.print_stats(10)
 
 
-from examples.candy_cane import row_rules, col_rules
+from examples.wikipedia_w import row_rules, col_rules
 
 N = Nonogram(row_rules, col_rules)
 N.solve()
