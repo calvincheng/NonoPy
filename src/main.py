@@ -2,20 +2,6 @@ import numpy as np
 import itertools
 from obj.PriorityQueue import PriorityQueue
 
-def partitions(n, k, r = None):
-    '''
-    https://stackoverflow.com/questions/28965734/general-bars-and-stars
-    '''
-    r = r or [0 for _ in range(k)]
-    for c in itertools.combinations(range(n+k-1), k-1):
-        yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
-
-def partitions2(n, k, r, line, rule):
-    for c in itertools.combinations(range(n+k-1), k-1):
-        # if any([ line[x+i] == 0 for i,x in enumerate(c) ]): continue
-        yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
-
-
 class Nonogram:
     def __init__(self, rows, cols):
         self.rows = rows
@@ -70,6 +56,16 @@ class Nonogram:
             self.hash[hashstring] = (line, changed_idxs)
             return line, changed_idxs
 
+        def partitions(n, k, r = None):
+            '''
+            https://stackoverflow.com/questions/28965734/general-bars-and-stars
+            '''
+            r = r or [0 for _ in range(k)]
+            for c in itertools.combinations(range(n+k-1), k-1):
+                if line[c[0]] == 0: continue
+                yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
+
+
         def is_valid_combo(combo):
             j = combo[0]    # solids
             k = 0           # spaces
@@ -99,7 +95,6 @@ class Nonogram:
         combos = list(filter(
             is_valid_combo,
             partitions(n, k, base)
-            # partitions2(n, k, base, line, rule)
         ))
 
         if len(combos) > 0:
@@ -114,7 +109,7 @@ class Nonogram:
             return res, changed_idxs
 
         self.hash[hashstring] = (line, changed_idxs)
-        return line, changed_idx
+        return line, changed_idxs
 
     def solve(self):
         import cProfile, pstats
@@ -153,6 +148,8 @@ class Nonogram:
         stats.print_stats(10)
 
 
+# from examples.candy_cane import row_rules, col_rules
+# from examples.seahorse import row_rules, col_rules
 from examples.wikipedia_w import row_rules, col_rules
 
 N = Nonogram(row_rules, col_rules)
