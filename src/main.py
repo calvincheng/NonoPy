@@ -56,10 +56,12 @@ class Nonogram:
             self.hits += 1
             return self.hash[hashstring]
 
+        has_changed = False
+
         # Return if line already solved
         if -1 not in line:
-            self.hash[hashstring] = line
-            return line
+            self.hash[hashstring] = (line, has_changed)
+            return line, has_changed
 
         def is_valid_combo(combo):
             j = combo[0]    # solids
@@ -96,28 +98,39 @@ class Nonogram:
                 # Use value it is equal across all combos, otherwise set as unknown
                 cline = generate_line_from_combo(combo)
                 res = [x if not(res[i] ^ cline[i]) else -1 for i, x in enumerate(cline)]
+            has_changed = True
             self.nohits += 1
-            self.hash[hashstring] = res
-            return res
+            self.hash[hashstring] = (res, has_changed)
+            return res, has_changed
         self.nohits += 1
-        self.hash[hashstring] = line
-        return line
+        self.hash[hashstring] = (line, has_changed)
+        return line, has_changed
 
     def solve(self):
         import cProfile, pstats
         profiler = cProfile.Profile()
         profiler.enable()
 
-        for _ in range(4):
+        solved = False
+        iters = 0
+        while not solved:
+            iters += 1
+            print("Iteration: {}".format(iters))
+            solved = True
             for i in range(self.m):
                 line = self.grid[i]
                 rule = self.rows[i]
-                self.grid[i] = self.solve_line(line, rule)
+                solution, has_changed = self.solve_line(line, rule)
+                if has_changed:
+                    solved = False
+                    self.grid[i] = solution
             for j in range(self.n):
                 line = self.grid[:,j]
                 rule = self.cols[j]
-                self.grid[:,j] = self.solve_line(line, rule)
-            # print(self)
+                solution, has_changed = self.solve_line(line, rule)
+                if has_changed:
+                    solved = False
+                    self.grid[:,j] = solution
 
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('tottime')
