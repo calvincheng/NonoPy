@@ -22,17 +22,21 @@ class Nonogram:
                  for _ in range(self.m)]
         )
 
+        self.hash = {}
+        self.hits = 0
+        self.nohits = 0
+
     def __str__(self):
         string = ""
         for j in range(self.m):
             for i in range(self.n):
                 cell = self.grid[j][i]
                 if cell == -1:
-                    string += '. '
+                    string += '\u2895\u2895'
                 elif cell == 0:
                     string += '  '
                 elif cell == 1:
-                    string += '# '
+                    string += '\u2588\u2588'
                 else:
                     raise ValueError(
                         "Unrecognised value at cell ({}, {}): {}".format(i, j, cell)
@@ -41,6 +45,10 @@ class Nonogram:
         return string
 
     def solve_line(self, line, rule):
+        hashstring = (str(rule), str(line))
+        if hashstring in self.hash:
+            self.hits += 1
+            return self.hash[hashstring]
 
         def is_valid_combo(combo):
             j = combo[0]    # solids
@@ -64,6 +72,7 @@ class Nonogram:
 
         k = len(rule) + 1
         n = len(line) - sum(rule) - (k - 2)
+        # print("n: {} | k: {}".format(n, k))
         base = [1 if 0 < i < k-1 else 0 for i in range(k)]
         combos = list(filter(
             is_valid_combo,
@@ -75,7 +84,11 @@ class Nonogram:
                 # Use value it is equal across all combos, otherwise set as unknown
                 cline = generate_line_from_combo(combo)
                 res = [x if not(res[i] ^ cline[i]) else -1 for i, x in enumerate(cline)]
+            self.nohits += 1
+            self.hash[hashstring] = res
             return res
+        self.nohits += 1
+        self.hash[hashstring] = line
         return line
 
     def solve(self):
@@ -83,7 +96,7 @@ class Nonogram:
         profiler = cProfile.Profile()
         profiler.enable()
 
-        for _ in range(4):
+        for _ in range(5):
             for i in range(self.m):
                 line = self.grid[i]
                 rule = self.rows[i]
@@ -92,6 +105,7 @@ class Nonogram:
                 line = self.grid[:,j]
                 rule = self.cols[j]
                 self.grid[:,j] = self.solve_line(line, rule)
+            # print(self)
 
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('tottime')
@@ -99,11 +113,54 @@ class Nonogram:
 
 
 
-col_rules = [[3], [3,1], [1,1,2], [1,4,2], [4,2,3], [1,1,4,3], [2,6,2], [2,1,9], [1,1,7], [2,5]]
-row_rules = [[3], [3,3], [1,1,1,1], [1,4,1], [4,3], [1,1,2], [1,6,1], [2,4,1], [5], [3], [3,3], [6], [5], [2], [2]]
+
+col_rules = [
+    [3, 3],
+    [3, 5],
+    [1, 5, 1],
+    [1, 3],
+    [4],
+    [2],
+    [1, 1],
+    [3],
+    [5],
+    [1, 4, 4, 4, 4, 3],
+    [3, 4, 4, 4, 4, 1],
+    [3, 4, 4, 4, 4]
+]
+row_rules = [
+    [1],
+    [3],
+    [2],
+    [1, 1],
+    [2],
+    [3],
+    [3],
+    [2],
+    [1, 1],
+    [2],
+    [3],
+    [3],
+    [2],
+    [1, 1],
+    [2],
+    [3],
+    [1, 3],
+    [3, 2],
+    [2, 1, 1],
+    [1, 1, 2],
+    [2, 3],
+    [3, 3],
+    [4, 1, 2],
+    [3, 1, 3, 1],
+    [1, 2, 5],
+    [4, 3],
+    [4, 1],
+]
 
 N = Nonogram(row_rules, col_rules)
 N.solve()
+print(N.hits, N.nohits)
 print(N)
 
 
