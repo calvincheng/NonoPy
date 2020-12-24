@@ -22,9 +22,9 @@ def partitions(n, k, r = None):
     '''
     https://stackoverflow.com/questions/28965734/general-bars-and-stars
     '''
-    if r is None: r = [0] * k
+    r = r or [0 for _ in range(k)]
     for c in combinations(range(n+k-1), k-1):
-        yield [b-a-1+c for a,b,c in zip((-1,)+c, c+(n+k-1,), r)]
+        yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
 
 def is_valid_combo(line, rule, combo):
     j = combo[0]
@@ -49,7 +49,7 @@ def generate_line_from_combo(line, rule, combo):
 def solve_line(line, rule):
     k = len(rule) + 1
     n = len(line) - sum(rule) - (k - 2)
-    base = [1 if i != 0 and i != k-1 else 0 for i in range(k)]
+    base = [1 if 0 < i < k-1 else 0 for i in range(k)]
     combos = list(filter(
         lambda c: is_valid_combo(line, rule, c),
         partitions(n, k, base)
@@ -68,6 +68,7 @@ def print_lines(lines):
     n = len(lines[0])
     string = ""
     for j in range(m):
+        string += "\n"
         for i in range(n):
             cell = lines[j][i]
             if cell == -1:
@@ -80,14 +81,17 @@ def print_lines(lines):
                 raise ValueError(
                     "Unrecognised value at cell ({}, {}): {}".format(i, j, cell)
                 )
-        string += "\n"
     print(string)
 
 def main():
     # col_rules = [[1, 2], [2], [3], [2], [3]]
     # row_rules = [[3], [1, 3], [1, 1], [2], [2]]
-    col_rules = [[1], [2, 2], [1, 4, 4], [2, 6, 1], [1, 4, 1, 1], [1, 1]]
-    row_rules = [[1], [1, 1], [5], [1], [2], [3], [2, 2], [1, 2], [2], [2], [1], [1, 1], [1, 1], [2]]
+    # # Seahorse
+    # col_rules = [[1], [2, 2], [1, 4, 4], [2, 6, 1], [1, 4, 1, 1], [1, 1]]
+    # row_rules = [[1], [1, 1], [5], [1], [2], [3], [2, 2], [1, 2], [2], [2], [1], [1, 1], [1, 1], [2]]
+    col_rules = [[3], [3,1], [1,1,2], [1,4,2], [4,2,3], [1,1,4,3], [2,6,2], [2,1,9], [1,1,7], [2,5]]
+    row_rules = [[3], [3,3], [1,1,1,1], [1,4,1], [4,3], [1,1,2], [1,6,1], [2,4,1], [5], [3], [3,3], [6], [5], [2], [2]]
+
     m = len(row_rules)
     n = len(col_rules)
     lines = np.array(
@@ -95,7 +99,10 @@ def main():
              for _ in range(m)]
     )
 
-    print(m, n)
+    import cProfile, pstats
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     for _ in range(5):
         for i in range(m):
             line = lines[i]
@@ -106,5 +113,9 @@ def main():
             rule = col_rules[j]
             lines[:,j] = solve_line(line, rule)
     print_lines(lines)
+
+    profiler.disable()
+    stats = pstats.Stats(profiler).sort_stats('tottime')
+    stats.print_stats()
 
 main()
