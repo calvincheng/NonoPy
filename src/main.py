@@ -9,6 +9,11 @@ def partitions(n, k, r = None):
     for c in combinations(range(n+k-1), k-1):
         yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
 
+def partitions2(n, k, r, line, rule):
+    for c in combinations(range(n+k-1), k-1):
+        # if any([ line[x+i] == 0 for i,x in enumerate(c) ]): continue
+        yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
+
 class Nonogram:
     def __init__(self, rows, cols):
         self.rows = rows
@@ -45,10 +50,16 @@ class Nonogram:
         return string
 
     def solve_line(self, line, rule):
+        # Return cached solutions
         hashstring = (str(rule), str(line))
         if hashstring in self.hash:
             self.hits += 1
             return self.hash[hashstring]
+
+        # Return if line already solved
+        if -1 not in line:
+            self.hash[hashstring] = line
+            return line
 
         def is_valid_combo(combo):
             j = combo[0]    # solids
@@ -76,6 +87,7 @@ class Nonogram:
         base = [1 if 0 < i < k-1 else 0 for i in range(k)]
         combos = list(filter(
             is_valid_combo,
+            # partitions2(n, k, base, line, rule)
             partitions(n, k, base)
         ))
         if len(combos) > 0:
@@ -96,7 +108,7 @@ class Nonogram:
         profiler = cProfile.Profile()
         profiler.enable()
 
-        for _ in range(5):
+        for _ in range(4):
             for i in range(self.m):
                 line = self.grid[i]
                 rule = self.rows[i]
@@ -111,56 +123,73 @@ class Nonogram:
         stats = pstats.Stats(profiler).sort_stats('tottime')
         stats.print_stats()
 
-
-
-
 col_rules = [
-    [3, 3],
-    [3, 5],
-    [1, 5, 1],
-    [1, 3],
-    [4],
-    [2],
-    [1, 1],
-    [3],
-    [5],
-    [1, 4, 4, 4, 4, 3],
-    [3, 4, 4, 4, 4, 1],
-    [3, 4, 4, 4, 4]
-]
-row_rules = [
     [1],
-    [3],
+    [1],
     [2],
-    [1, 1],
-    [2],
+    [4],
+    [7],
+    [9],
+    [2,8],
+    [1,8],
+    [8],
+    [1,9],
+    [2,7],
+    [3,4],
+    [6,4],
+    [8,5],
+    [1,11],
+    [1,7],
+    [8],
+    [1,4,8],
+    [6,8],
+    [4,7],
+    [2,4],
+    [1,4],
+    [5],
+    [1,4],
+    [1,5],
+    [7],
+    [5],
     [3],
-    [3],
-    [2],
-    [1, 1],
-    [2],
-    [3],
-    [3],
-    [2],
-    [1, 1],
-    [2],
-    [3],
-    [1, 3],
-    [3, 2],
-    [2, 1, 1],
-    [1, 1, 2],
-    [2, 3],
-    [3, 3],
-    [4, 1, 2],
-    [3, 1, 3, 1],
-    [1, 2, 5],
-    [4, 3],
-    [4, 1],
+    [1],
+    [1]
+]
+
+row_rules = [
+    [8,7,5,7],
+    [5,4,3,3],
+    [3,3,2,3],
+    [4,3,2,2],
+    [3,3,2,2],
+    [3,4,2,2],
+    [4,5,2],
+    [3,5,1],
+    [4,3,2],
+    [3,4,2],
+    [4,4,2],
+    [3,6,2],
+    [3,2,3,1],
+    [4,3,4,2],
+    [3,2,3,2],
+    [6,5],
+    [4,5],
+    [3,3],
+    [3,3],
+    [1,1] 
 ]
 
 N = Nonogram(row_rules, col_rules)
+rule = [1,1,5]
+L = 24
 N.solve()
 print(N.hits, N.nohits)
 print(N)
 
-
+# k = len(rule) + 1
+# n = L - sum(rule) - (k - 2)
+# combs = combinations(range(n+k-1), k-1)
+# print(list(combs)[2])
+# # parts = partitions(n, k)
+# parts = partitions2(n, k, [0, 0, 0, 0], N.grid[0], row_rules[0])
+# print(list(parts)[2])
