@@ -49,13 +49,17 @@ class Nonogram:
             string += "\n"
         return string
 
-    def solve_line(self, line, rule):
+    def solve_line(self, idx, axis=0):
+        line = self.grid[idx] if axis == 0 else self.grid[:,idx]
+        rule = self.rows[idx] if axis == 0 else self.cols[idx]
+
         # Return cached solutions
         hashstring = (str(rule), str(line))
         if hashstring in self.hash:
             self.hits += 1
             return self.hash[hashstring]
 
+        self.nohits += 1
         has_changed = False
 
         # Return if line already solved
@@ -92,6 +96,7 @@ class Nonogram:
             # partitions2(n, k, base, line, rule)
             partitions(n, k, base)
         ))
+
         if len(combos) > 0:
             res = generate_line_from_combo(combos[0])
             for combo in combos:
@@ -99,10 +104,9 @@ class Nonogram:
                 cline = generate_line_from_combo(combo)
                 res = [x if not(res[i] ^ cline[i]) else -1 for i, x in enumerate(cline)]
             has_changed = True
-            self.nohits += 1
             self.hash[hashstring] = (res, has_changed)
             return res, has_changed
-        self.nohits += 1
+
         self.hash[hashstring] = (line, has_changed)
         return line, has_changed
 
@@ -118,16 +122,12 @@ class Nonogram:
             print("Iteration: {}".format(iters))
             solved = True
             for i in range(self.m):
-                line = self.grid[i]
-                rule = self.rows[i]
-                solution, has_changed = self.solve_line(line, rule)
+                solution, has_changed = self.solve_line(i, axis=0)
                 if has_changed:
                     solved = False
                     self.grid[i] = solution
             for j in range(self.n):
-                line = self.grid[:,j]
-                rule = self.cols[j]
-                solution, has_changed = self.solve_line(line, rule)
+                solution, has_changed = self.solve_line(j, axis=1)
                 if has_changed:
                     solved = False
                     self.grid[:,j] = solution
