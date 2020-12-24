@@ -1,18 +1,50 @@
 import numpy as np
-from itertools import combinations
+import itertools
+import heapq
 
 def partitions(n, k, r = None):
     '''
     https://stackoverflow.com/questions/28965734/general-bars-and-stars
     '''
     r = r or [0 for _ in range(k)]
-    for c in combinations(range(n+k-1), k-1):
+    for c in itertools.combinations(range(n+k-1), k-1):
         yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
 
 def partitions2(n, k, r, line, rule):
-    for c in combinations(range(n+k-1), k-1):
+    for c in itertools.combinations(range(n+k-1), k-1):
         # if any([ line[x+i] == 0 for i,x in enumerate(c) ]): continue
         yield [b-a-1+d for a,b,d in zip((-1,)+c, c+(n+k-1,), r)]
+
+class PriorityQueue:
+    '''
+    https://docs.python.org/3/library/heapq.html
+    '''
+    def __init__(self):
+        self.items = []
+        self.item_finder = {}
+        self.counter = itertools.count()
+        self.REMOVED = "<removed>"
+
+    def add_item(self, value, priority = 0):
+        if value in self.item_finder:
+            self.remove_item(value)
+        count = next(self.counter)
+        item = [priority, count, value]
+        self.item_finder[value] = item
+        heapq.heappush(self.items, item)
+
+    def remove_item(self, value):
+        entry = self.item_finder.pop(value)
+        entry[-1] = self.REMOVED
+
+    def pop_item(self):
+        while self.items:
+            priority, count, value = heapq.heappop(self.items)
+            if value is not self.REMOVED:
+                del self.item_finder[value]
+                return value
+        raise KeyError('pop from an empty priority queue')
+
 
 class Nonogram:
     def __init__(self, rows, cols):
@@ -50,8 +82,9 @@ class Nonogram:
         return string
 
     def solve_line(self, idx, axis=0):
-        line = self.grid[idx] if axis == 0 else self.grid[:,idx]
-        rule = self.rows[idx] if axis == 0 else self.cols[idx]
+        # 0 - column, 1 - row
+        line = self.grid[:,idx] if axis == 0 else self.grid[idx]
+        rule = self.cols[idx] if axis == 0 else self.rows[idx]
 
         # Return cached solutions
         hashstring = (str(rule), str(line))
@@ -60,12 +93,12 @@ class Nonogram:
             return self.hash[hashstring]
 
         self.nohits += 1
-        has_changed = False
+        changed_idxs = []
 
         # Return if line already solved
         if -1 not in line:
-            self.hash[hashstring] = (line, has_changed)
-            return line, has_changed
+            self.hash[hashstring] = (line, changed_idxs)
+            return line, changed_idxs
 
         def is_valid_combo(combo):
             j = combo[0]    # solids
@@ -103,95 +136,96 @@ class Nonogram:
                 # Use value it is equal across all combos, otherwise set as unknown
                 cline = generate_line_from_combo(combo)
                 res = [x if not(res[i] ^ cline[i]) else -1 for i, x in enumerate(cline)]
-            has_changed = True
-            self.hash[hashstring] = (res, has_changed)
-            return res, has_changed
 
-        self.hash[hashstring] = (line, has_changed)
-        return line, has_changed
+            changed_idxs = [i for i,x in enumerate(res) if x != line[i]]
+            self.hash[hashstring] = (res, changed_idxs)
+            return res, changed_idxs
+
+        self.hash[hashstring] = (line, changed_idxs)
+        return line, changed_idx
 
     def solve(self):
         import cProfile, pstats
         profiler = cProfile.Profile()
         profiler.enable()
 
-        solved = False
-        iters = 0
-        while not solved:
-            iters += 1
-            print("Iteration: {}".format(iters))
-            solved = True
-            for i in range(self.m):
-                solution, has_changed = self.solve_line(i, axis=0)
-                if has_changed:
-                    solved = False
-                    self.grid[i] = solution
-            for j in range(self.n):
-                solution, has_changed = self.solve_line(j, axis=1)
-                if has_changed:
-                    solved = False
-                    self.grid[:,j] = solution
+        # Populate priority queue
+        priority_queue = PriorityQueue()
+        for i in range(self.m):
+            priority = -sum(self.rows[i])
+            priority_queue.add_item((i, 1), priority)
+        for j in range(self.n):
+            priority = -sum(self.cols[j])
+            priority_queue.add_item((j, 0), priority)
+
+        while len(priority_queue.items) > 0:
+            try: idx, axis = priority_queue.pop_item()
+            except KeyError: break
+            solution, changed_idxs = self.solve_line(idx, axis)
+
+            for changed_idx in changed_idxs:
+                priority = -100 # TODO: Calculate priority using a function
+                priority_queue.add_item(
+                    (changed_idx, (axis+1)%2), 
+                    priority
+                )
+
+            if len(changed_idxs) > 0:
+                if axis == 0:
+                    self.grid[:,idx] = solution
+                else:
+                    self.grid[idx] = solution
 
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats('tottime')
         stats.print_stats()
 
-col_rules = [
-    [1],
-    [1],
-    [2],
-    [4],
-    [7],
-    [9],
-    [2,8],
-    [1,8],
-    [8],
-    [1,9],
-    [2,7],
-    [3,4],
-    [6,4],
-    [8,5],
-    [1,11],
-    [1,7],
-    [8],
-    [1,4,8],
-    [6,8],
-    [4,7],
-    [2,4],
-    [1,4],
-    [5],
-    [1,4],
-    [1,5],
-    [7],
-    [5],
-    [3],
-    [1],
-    [1]
-]
 
+col_rules = [
+    [3, 3],
+    [3, 5],
+    [1, 5, 1],
+    [1, 3],
+    [4],
+    [2],
+    [1, 1],
+    [3],
+    [5],
+    [1, 4, 4, 4, 4, 3],
+    [3, 4, 4, 4, 4, 1],
+    [3, 4, 4, 4, 4]
+]
 row_rules = [
-    [8,7,5,7],
-    [5,4,3,3],
-    [3,3,2,3],
-    [4,3,2,2],
-    [3,3,2,2],
-    [3,4,2,2],
-    [4,5,2],
-    [3,5,1],
-    [4,3,2],
-    [3,4,2],
-    [4,4,2],
-    [3,6,2],
-    [3,2,3,1],
-    [4,3,4,2],
-    [3,2,3,2],
-    [6,5],
-    [4,5],
-    [3,3],
-    [3,3],
-    [1,1] 
+    [1],
+    [3],
+    [2],
+    [1, 1],
+    [2],
+    [3],
+    [3],
+    [2],
+    [1, 1],
+    [2],
+    [3],
+    [3],
+    [2],
+    [1, 1],
+    [2],
+    [3],
+    [1, 3],
+    [3, 2],
+    [2, 1, 1],
+    [1, 1, 2],
+    [2, 3],
+    [3, 3],
+    [4, 1, 2],
+    [3, 1, 3, 1],
+    [1, 2, 5],
+    [4, 3],
+    [4, 1],
 ]
 
 N = Nonogram(row_rules, col_rules)
 N.solve()
 print(N)
+print("Hashtable hitrate: {:.2f}%".format(N.hits / (N.hits + N.nohits) * 100))
