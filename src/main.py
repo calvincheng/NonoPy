@@ -74,11 +74,14 @@ class Nonogram:
             j = combo[0]    # solids
             k = 0           # spaces
             for i in range(len(rule)):
-                if not all(line[j:j+rule[i]]) or 1 in line[k:k+combo[i]]:
+                if (
+                    not all(line[j:j+rule[i]])      # Space covered by solid
+                    or any(line[k:k+combo[i]] == 1)  # Solid covered by space
+                ):
                     return False
                 j += (combo[i+1] + rule[i])
                 k += (combo[i] + rule[i])
-            if 1 in line[k:k+combo[-1]]: return False
+            if any(line[k:k+combo[-1]] == 1): return False
             return True
 
         def generate_line_from_combo(combo):
